@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CrowdIQ Assistant</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<!-- 🔥 TOP BAR -->
+<div class="top-bar">
+  <div class="logo-section">
+    <img src="CrowdIQ_logo.png" class="logo" />
+
+    <div>
+      <div class="title">CrowdIQ</div>
+      <div class="tagline">Real-time Stadium Intelligence</div>
+    </div>
+  </div>
+
+  <div class="profile" onclick="toggleMenu()">
+    <img src="https://i.pravatar.cc/40" />
+    <div class="dropdown" id="menu">
+      <div>Profile</div>
+      <div>Settings</div>
+      <div>Logout</div>
+    </div>
+  </div>
+</div>
+
+<!-- 🔥 NEW: MAP UI -->
+<div id="map" class="map-container"></div>
+
+<!-- 🔥 CHAT SECTION -->
+<div class="chat-container">
+
+  <div class="messages" id="messages"></div>
+
+  <div class="input-area">
+    <div class="input-wrapper">
+      <input id="query" placeholder="Ask about gates, food, crowd..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- JS -->
+<script src="script.js"></script>
+
+</body>
+</html>

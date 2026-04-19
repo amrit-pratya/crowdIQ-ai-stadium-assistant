@@ -1,0 +1,1 @@
+# crowdIQ-ai-stadium-assistant

@@ -1,0 +1,26 @@
+# 🔐 Environment variables (CRITICAL)
+.env
+
+# 📦 Node dependencies
+node_modules/
+
+# 🧾 Logs
+logs/
+*.log
+npm-debug.log*
+
+# 🖥 OS files
+.DS_Store
+Thumbs.db
+
+# 🧪 Build / temp
+dist/
+build/
+.cache/
+
+# 🧠 IDE / Editor
+.vscode/
+.idea/
+
+# 🔥 Optional: lockfiles (if needed)
+# package-lock.json

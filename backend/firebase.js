@@ -1,10 +1,11 @@
-const admin = require("firebase-admin");
-const serviceAccount = require("./firebaseKey.json");
+// 🔥 TEMP DISABLE FIREBASE FOR DEPLOYMENT
+// const admin = require("firebase-admin");
+// const serviceAccount = require("./firebaseKey.json");
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount)
+// });
 
-const db = admin.firestore();
+// const db = admin.firestore();
 
-module.exports = db;
+// module.exports = db;

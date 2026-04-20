@@ -1,7 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
-const db = require("../firebase");
+let db = null;
+try {
+  db = require("../firebase");
+} catch (e) {
+  console.log("⚠️ Firebase not loaded (using fallback data)");
+}
 const { getAIResponse } = require("../services/aiService");
 
 router.post("/ask", async (req, res) => {

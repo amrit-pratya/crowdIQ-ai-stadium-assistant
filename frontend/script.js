@@ -1,6 +1,16 @@
 const messagesDiv = document.getElementById("messages");
 let chatHistory = [];
 
+let map;
+let markers = [];
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 12.9716, lng: 77.5946 }, // any central point
+    zoom: 17,
+  });
+}
+
 // 🔥 Toggle profile menu
 function toggleMenu() {
   const menu = document.getElementById("menu");
@@ -13,7 +23,12 @@ function addMessage(html, sender) {
   div.className = "message " + sender;
   div.innerHTML = html;
   messagesDiv.appendChild(div);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  messagesDiv.scrollTo({
+    top: messagesDiv.scrollHeight,
+    behavior: "smooth"
+  });
+
   return div;
 }
 
@@ -37,7 +52,6 @@ async function sendMessage() {
 
   input.value = "";
 
-  // 🔥 Animated thinking
   const botDiv = addMessage(
     `CrowdIQ is thinking <span class="dots"><span>.</span><span>.</span><span>.</span></span>`,
     "bot"
@@ -47,13 +61,12 @@ async function sendMessage() {
 
   const res = await fetch("http://localhost:5000/assistant/ask", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, history: chatHistory })
   });
 
   const data = await res.json();
 
-  // 🔥 Ensure minimum thinking delay
   const elapsed = Date.now() - start;
   if (elapsed < 600) {
     await new Promise(r => setTimeout(r, 600 - elapsed));
@@ -61,7 +74,6 @@ async function sendMessage() {
 
   const text = formatResponse(data.answer);
 
-  // 🔥 Replace typing text
   botDiv.innerText = "";
 
   let i = 0;
@@ -73,81 +85,114 @@ async function sendMessage() {
 
   chatHistory.push({ role: "assistant", content: text });
 
-  // 🔥 Detect seat query → update map
+  // 🔥 Seat detection
   const map = document.getElementById("map");
-
-  // 🔥 Detect seat query robustly
   const seatMatch = query.toUpperCase().match(/[A-C]\s?[1-2]/);
 
   if (seatMatch) {
     const cleanSeat = seatMatch[0].replace(" ", "");
     renderMap("A", cleanSeat);
   } else {
-    map.style.display = "none"; // 🔥 hide map if not seat query
-  }
-
-  if (seatMatch) {
-    const cleanSeat = seatMatch[0].replace(" ", "");
-    renderMap("A", cleanSeat);
+    map.style.display = "none";
   }
 }
 
 // ===============================
-// 🗺️ MAP LOGIC
+// 🗺️ MAP RENDER (STATIC LAYOUT)
 // ===============================
 
 function renderMap(userGate = "A", targetSection = null) {
-  const map = document.getElementById("map");
+  const mapDiv = document.getElementById("map");
+  mapDiv.style.display = "block";
+
   if (!map) return;
 
-  // 🔥 SHOW map only when needed
-  map.style.display = "block";
+  // Clear old markers
+  markers.forEach(m => m.setMap(null));
+  markers = [];
 
-  map.innerHTML = "";
-
-  const gates = {
-    A: { top: "10%", left: "10%" },
-    B: { top: "10%", left: "45%" },
-    C: { top: "10%", left: "80%" }
+  const gateCoords = {
+    A: { lat: 12.9718, lng: 77.5944 },
+    B: { lat: 12.9716, lng: 77.5948 },
+    C: { lat: 12.9714, lng: 77.5952 }
   };
 
-  const sections = {
-    A1: { top: "60%", left: "10%" },
-    A2: { top: "75%", left: "10%" },
-    B1: { top: "60%", left: "45%" },
-    B2: { top: "75%", left: "45%" },
-    C1: { top: "60%", left: "80%" },
-    C2: { top: "75%", left: "80%" }
+  const sectionCoords = {
+    A1: { lat: 12.9719, lng: 77.5943 },
+    A2: { lat: 12.9720, lng: 77.5942 },
+    B1: { lat: 12.9716, lng: 77.5949 },
+    B2: { lat: 12.9715, lng: 77.5950 },
+    C1: { lat: 12.9713, lng: 77.5953 },
+    C2: { lat: 12.9712, lng: 77.5954 }
   };
 
-  for (let g in gates) {
-    const div = document.createElement("div");
-    div.className = "gate";
-    div.innerText = "Gate " + g;
-    div.style.top = gates[g].top;
-    div.style.left = gates[g].left;
-
-    if (g === userGate) div.classList.add("highlight");
-
-    map.appendChild(div);
+  // Gates
+  for (let g in gateCoords) {
+    const marker = new google.maps.Marker({
+      position: gateCoords[g],
+      map,
+      label: "Gate " + g,
+      icon: g === userGate
+        ? "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+        : null
+    });
+    markers.push(marker);
   }
 
-  for (let s in sections) {
-    const div = document.createElement("div");
-    div.className = "section";
-    div.innerText = s;
-    div.style.top = sections[s].top;
-    div.style.left = sections[s].left;
+  // Target section
+  if (targetSection && sectionCoords[targetSection]) {
+    const marker = new google.maps.Marker({
+      position: sectionCoords[targetSection],
+      map,
+      label: targetSection,
+      icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+    });
+    markers.push(marker);
 
-    if (s === targetSection) div.classList.add("highlight");
-
-    map.appendChild(div);
+    map.panTo(sectionCoords[targetSection]);
   }
-
-  const user = document.createElement("div");
-  user.className = "user-dot";
-  user.style.top = gates[userGate].top;
-  user.style.left = gates[userGate].left;
-
-  map.appendChild(user);
 }
+
+// ===============================
+// 🔥 REAL-TIME UPDATE (FIREBASE)
+// ===============================
+
+async function fetchLiveData() {
+  try {
+    const res = await fetch("http://localhost:5000/crowd");
+    const data = await res.json();
+
+    updateMap(data);
+  } catch (err) {
+    console.error("Live update error:", err);
+  }
+}
+
+// 🔥 Update map dynamically
+function updateMap(data) {
+  if (!data || !data.gates) return;
+
+  let bestGate = null;
+  let min = Infinity;
+
+  for (let g in data.gates) {
+    if (data.gates[g].waitTime < min) {
+      min = data.gates[g].waitTime;
+      bestGate = g;
+    }
+  }
+
+  // Remove old highlights
+  document.querySelectorAll(".gate").forEach(g => {
+    g.classList.remove("best");
+  });
+
+  // Highlight best gate
+  const el = document.getElementById("gate-" + bestGate);
+  if (el) el.classList.add("best");
+}
+
+// 🔥 Start real-time polling
+document.addEventListener("DOMContentLoaded", () => {
+  setInterval(fetchLiveData, 5000);
+});

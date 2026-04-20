@@ -215,3 +215,15 @@ body {
   background: yellow;
   border-radius: 50%;
 }
+
+.best {
+  background: linear-gradient(135deg, #00ffcc, #00cc99);
+  box-shadow: 0 0 15px #00ffcc;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}

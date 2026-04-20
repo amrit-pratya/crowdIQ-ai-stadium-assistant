@@ -5,62 +5,37 @@ const cors = require("cors");
 
 const app = express();
 
-// 🔥 Firebase
-const db = require("./firebase");
-
-// Middleware
-app.use(cors());
+// ✅ Middleware
+app.use(cors({
+  origin: "*", // allow all for now (you can restrict later)
+}));
 app.use(express.json());
 
-// Routes
+// ✅ Routes
+const crowdData = require("./data/crowdData");
 const assistantRoutes = require("./routes/assistant");
 
-// Base route
+// 🔹 Base route (health check)
 app.get("/", (req, res) => {
-  res.send("CrowdIQ Backend Running");
+  res.send("CrowdIQ Backend Running 🚀");
 });
 
-
-// 🔥 LIVE CROWD DATA FROM FIREBASE
-app.get("/crowd", async (req, res) => {
-  try {
-    const doc = await db.collection("crowd").doc("stadium").get();
-
-    if (!doc.exists) {
-      return res.json({});
-    }
-
-    res.json(doc.data());
-
-  } catch (error) {
-    console.error("Error fetching crowd data:", error.message);
-    res.status(500).json({ error: "Failed to fetch data" });
-  }
+// 🔹 Static crowd data
+app.get("/crowd", (req, res) => {
+  res.json(crowdData);
 });
 
-
-// (Optional) alias endpoint if you want both
-app.get("/live-crowd", async (req, res) => {
-  try {
-    const doc = await db.collection("crowd").doc("stadium").get();
-
-    if (!doc.exists) {
-      return res.json({});
-    }
-
-    res.json(doc.data());
-
-  } catch (error) {
-    console.error("Error fetching live crowd:", error.message);
-    res.status(500).json({ error: "Failed to fetch data" });
-  }
+// 🔹 Live crowd data (same for now, can be Firebase later)
+app.get("/live-crowd", (req, res) => {
+  res.json(crowdData);
 });
 
-
-// Assistant API
+// 🔹 AI Assistant route
 app.use("/assistant", assistantRoutes);
 
-// Start server
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+// ✅ IMPORTANT: Dynamic PORT for deployment
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
 });

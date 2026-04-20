@@ -1,3 +1,4 @@
+/*
 const { HfInference } = require("@huggingface/inference");
 
 const HF_API_KEY = process.env.HF_API_KEY
@@ -128,6 +129,73 @@ function generateFallback(query, crowdData) {
   }
 
   return "Ask about gates, food stalls, or seat directions for assistance.";
+}
+
+module.exports = { getAIResponse };
+*/
+const axios = require("axios");
+
+const HF_API_KEY = process.env.HF_API_KEY;
+
+// 🔥 Smart fallback (rule-based)
+function fallbackResponse(query, crowdData) {
+  const gates = crowdData.gates;
+
+  let bestGate = null;
+  let minWait = Infinity;
+
+  for (let g in gates) {
+    if (gates[g].waitTime < minWait) {
+      minWait = gates[g].waitTime;
+      bestGate = g;
+    }
+  }
+
+  if (query.toLowerCase().includes("fastest")) {
+    return `Gate ${bestGate} is the fastest with a wait time of ${minWait} minutes.`;
+  }
+
+  return "You can choose Gate " + bestGate + " for quicker entry.";
+}
+
+// 🔥 Main AI function
+async function getAIResponse(query, crowdData, history) {
+  try {
+    if (!HF_API_KEY) {
+      console.log("⚠️ No HF key, using fallback");
+      return fallbackResponse(query, crowdData);
+    }
+
+    const prompt = `
+You are a stadium assistant.
+Crowd data: ${JSON.stringify(crowdData)}
+User: ${query}
+Answer briefly:
+`;
+
+    const response = await axios.post(
+      "https://api-inference.huggingface.co/models/google/flan-t5-large",
+      { inputs: prompt },
+      {
+        headers: {
+          Authorization: `Bearer ${HF_API_KEY}`
+        }
+      }
+    );
+
+    if (response.data && response.data[0]?.generated_text) {
+      return response.data[0].generated_text;
+    }
+
+    // fallback if HF returns weird format
+    return fallbackResponse(query, crowdData);
+
+  } catch (error) {
+    console.error("HF ERROR:", error.message);
+
+    // 🔥 ALWAYS fallback
+    return fallbackResponse(query, crowdData);
+  }
 }
 
 module.exports = { getAIResponse };
